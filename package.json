@@ -1,0 +1,29 @@
+{
+  "name": "hide-and-seek-game",
+  "version": "1.0.0",
+  "description": "Comprehensive 2D Hide and Seek Game built with pure HTML5, CSS3, and Vanilla JavaScript with Web Audio Synthesizer, AI bots, dynamic raycasting, prop camouflage, level editor, replay engine, and unit test suites.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test tests/*.test.js",
+    "test:engine": "node --test tests/engine.test.js",
+    "test:ai": "node --test tests/ai_pathfinding.test.js",
+    "test:rules": "node --test tests/gameplay_rules.test.js",
+    "test:items": "node --test tests/items_and_props.test.js",
+    "expand": "node expand_hide_and_seek_codebase.js",
+    "count-lines": "powershell -Command \"Get-ChildItem -Recurse -Include *.js,*.html,*.css,*.json,*.md | Get-Content | Measure-Object -Line\""
+  },
+  "keywords": [
+    "hide-and-seek",
+    "game",
+    "html5-canvas",
+    "vanilla-js",
+    "web-audio-api",
+    "raycasting",
+    "pathfinding",
+    "prop-hunt",
+    "stealth-ai"
+  ],
+  "author": "Srinivas",
+  "license": "MIT"
+}

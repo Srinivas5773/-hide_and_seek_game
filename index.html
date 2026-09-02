@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Shadow Seekers // 2D Hide and Seek Tactical Engine</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Main Game Canvas Container -->
+  <div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Top Floating HUD -->
+    <div id="top-hud">
+      <div class="hud-item">
+        <span class="hud-label">Role</span>
+        <span id="hud-role-badge" class="role-badge role-hider">HIDER</span>
+      </div>
+
+      <div class="hud-item">
+        <span class="hud-label">Time Left</span>
+        <span id="hud-timer" class="hud-value hud-timer">02:00</span>
+      </div>
+
+      <div class="hud-item">
+        <span class="hud-label">Hiders Left</span>
+        <span id="hud-hiders-left" class="hud-value">5 / 5</span>
+      </div>
+
+      <div class="hud-item" id="stealth-meter-group">
+        <span class="hud-label">Stealth / Noise</span>
+        <div class="stealth-meter-container">
+          <div id="stealth-bar"></div>
+        </div>
+      </div>
+
+      <div class="hud-item">
+        <span class="hud-label">Score</span>
+        <span id="hud-score" class="hud-value">0</span>
+      </div>
+    </div>
+
+    <!-- Minimap Radar Panel -->
+    <div id="minimap-panel">
+      <span class="minimap-title">Tactical Radar</span>
+      <canvas id="minimapCanvas" width="140" height="140"></canvas>
+    </div>
+
+    <!-- Proximity Danger Heartbeat Indicator -->
+    <div id="heartbeat-indicator">
+      <span>⚠️ SEEKER NEARBY</span>
+    </div>
+
+    <!-- System Controls (Top Left) -->
+    <div id="system-controls">
+      <button id="btn-pause" class="btn-icon" title="Pause Game (Esc)">⏸️</button>
+      <button id="btn-sound" class="btn-icon active" title="Toggle Sound (M)">🔊</button>
+      <button id="btn-settings" class="btn-icon" title="Game Settings">⚙️</button>
+      <button id="btn-editor-open" class="btn-icon" title="Level Editor">✏️</button>
+      <button id="btn-lore-open" class="btn-icon" title="Lore & Intelligence">📖</button>
+      <button id="btn-achievements-open" class="btn-icon" title="Achievements">🏆</button>
+      <button id="btn-replay-open" class="btn-icon" title="Match Replay">📹</button>
+    </div>
+
+    <!-- Bottom Action & Ability Hotbar -->
+    <div id="bottom-hud">
+      <div class="hotbar-slot" id="slot-1" title="Invisibility Cloak (Key 1)">
+        <span class="slot-icon">👻</span>
+        <span class="slot-key">1</span>
+        <span class="slot-count" id="count-1">2</span>
+        <div class="slot-cooldown-overlay" id="cd-1"></div>
+      </div>
+
+      <div class="hotbar-slot" id="slot-2" title="Decoy Hologram (Key 2)">
+        <span class="slot-icon">👤</span>
+        <span class="slot-key">2</span>
+        <span class="slot-count" id="count-2">2</span>
+        <div class="slot-cooldown-overlay" id="cd-2"></div>
+      </div>
+
+      <div class="hotbar-slot" id="slot-3" title="Smoke Bomb (Key 3)">
+        <span class="slot-icon">💨</span>
+        <span class="slot-key">3</span>
+        <span class="slot-count" id="count-3">3</span>
+        <div class="slot-cooldown-overlay" id="cd-3"></div>
+      </div>
+
+      <div class="hotbar-slot" id="slot-4" title="Sonar Ping / Flashlight (Key 4)">
+        <span class="slot-icon">📡</span>
+        <span class="slot-key">4</span>
+        <span class="slot-count" id="count-4">∞</span>
+        <div class="slot-cooldown-overlay" id="cd-4"></div>
+      </div>
+
+      <div class="hotbar-slot" id="slot-5" title="Prop Morph / Disguise (Key E)">
+        <span class="slot-icon">📦</span>
+        <span class="slot-key">E</span>
+        <span class="slot-count" id="count-5">PRO</span>
+        <div class="slot-cooldown-overlay" id="cd-5"></div>
+      </div>
+
+      <div class="hotbar-slot" id="slot-taunt" title="Whistle Taunt (+Score, Reveals Direction) (Key T)">
+        <span class="slot-icon">📢</span>
+        <span class="slot-key">T</span>
+        <div class="slot-cooldown-overlay" id="cd-taunt"></div>
+      </div>
+    </div>
+
+    <!-- Round Center Message Banner -->
+    <div id="game-message-overlay">
+      <span id="game-message-text">ROUND START</span>
+    </div>
+
+    <!-- Mobile Virtual Controls -->
+    <div id="mobile-controls">
+      <div id="virtual-joystick-zone">
+        <div id="virtual-joystick-knob"></div>
+      </div>
+      <div id="mobile-action-buttons">
+        <button id="btn-mobile-interact" class="mobile-action-btn">📦</button>
+        <button id="btn-mobile-ability" class="mobile-action-btn">💨</button>
+        <button id="btn-mobile-taunt" class="mobile-action-btn">📢</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Menu Overlay -->
+  <div id="main-menu-overlay">
+    <h1 class="game-logo">SHADOW SEEKERS</h1>
+    <p class="game-tagline">Tactical 2D Hide and Seek Simulation // Line-of-Sight Stealth Engine</p>
+
+    <div class="mode-grid">
+      <div class="mode-card selected" data-mode="classic_hider">
+        <div class="mode-icon">🕵️</div>
+        <div class="mode-title">Classic Hider</div>
+        <div class="mode-desc">Hide with AI allies. Evade seeker vision cones, use stealth cover, and survive the clock.</div>
+      </div>
+
+      <div class="mode-card" data-mode="classic_seeker">
+        <div class="mode-icon">🔦</div>
+        <div class="mode-title">Classic Seeker</div>
+        <div class="mode-desc">Hunt all AI hiders with flashlight, acoustic tracking, and sonar pings before time expires.</div>
+      </div>
+
+      <div class="mode-card" data-mode="prop_hunt">
+        <div class="mode-icon">📦</div>
+        <div class="mode-title">Prop Hunt</div>
+        <div class="mode-desc">Morph into furniture, crates, bushes, and arcade cabinets. Blend into the room architecture.</div>
+      </div>
+
+      <div class="mode-card" data-mode="freeze_tag">
+        <div class="mode-icon">🧊</div>
+        <div class="mode-title">Freeze Tag</div>
+        <div class="mode-desc">Tagged hiders freeze into ice blocks. Teammates can perform daring rescues to unfreeze them.</div>
+      </div>
+
+      <div class="mode-card" data-mode="infection">
+        <div class="mode-icon">☣️</div>
+        <div class="mode-title">Infection Mode</div>
+        <div class="mode-desc">Caught hiders become seekers! Outsmart the growing swarm of hunters to be the final survivor.</div>
+      </div>
+
+      <div class="mode-card" data-mode="horror_darkness">
+        <div class="mode-icon">🌑</div>
+        <div class="mode-title">Midnight Horror</div>
+        <div class="mode-desc">Pitch black shadows, dynamic raycast flashlights, glowing footprints, and tense heartbeat pulses.</div>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 16px; align-items: center;">
+      <button id="btn-play-game" class="btn-primary">START OPERATION</button>
+      <button id="btn-sandbox-setup" class="btn-secondary">Map & Bot Settings</button>
+    </div>
+  </div>
+
+  <!-- Settings & Customizer Modal -->
+  <div id="modal-settings" class="modal-backdrop">
+    <div class="modal-window">
+      <div class="modal-header">
+        <div class="modal-title">⚙️ Tactical Configuration</div>
+        <button class="modal-close" data-close="modal-settings">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="tab-row">
+          <button class="tab-btn active" data-tab="tab-gameplay">Match Rules</button>
+          <button class="tab-btn" data-tab="tab-map">Map Selection</button>
+          <button class="tab-btn" data-tab="tab-audio">Audio & VFX</button>
+        </div>
+
+        <div id="tab-gameplay" class="tab-content">
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label class="form-label">Seeker AI Difficulty</label>
+            <select id="setting-difficulty" class="form-select">
+              <option value="easy">Rookie (Slow reaction, narrow vision cone)</option>
+              <option value="normal" selected>Operative (Standard search patrols, hears whistles)</option>
+              <option value="hard">Apex Hunter (Predictive interception, tracks footprints, fast)</option>
+            </select>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label class="form-label">Number of AI Hiders</label>
+            <div class="slider-container">
+              <input type="range" id="setting-hiders-count" class="slider-input" min="1" max="10" value="4">
+              <span id="val-hiders-count" class="slider-val">4</span>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label class="form-label">Number of AI Seekers</label>
+            <div class="slider-container">
+              <input type="range" id="setting-seekers-count" class="slider-input" min="1" max="4" value="1">
+              <span id="val-seekers-count" class="slider-val">1</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Round Duration</label>
+            <select id="setting-round-time" class="form-select">
+              <option value="60">1 Minute (Blitz)</option>
+              <option value="120" selected>2 Minutes (Standard)</option>
+              <option value="180">3 Minutes (Extended)</option>
+              <option value="300">5 Minutes (Marathon)</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="tab-map" class="tab-content" style="display: none;">
+          <div class="form-group">
+            <label class="form-label">Select Deployment Zone</label>
+            <select id="setting-map-select" class="form-select">
+              <option value="mansion" selected>Haunted Victorian Mansion (Multi-room, secret library)</option>
+              <option value="cyberpunk">Neon Cyberpunk Alleyways (Dumpsters, vents, steam)</option>
+              <option value="sanctuary">Overgrown Forest Sanctuary (Dense foliage, ruins)</option>
+              <option value="spacestation">Orbital Station Omega (Airlocks, ducts, reactor core)</option>
+              <option value="suburbia">Suburbia Playground & Houses (Hedges, garages, treehouse)</option>
+              <option value="mall">Mega Shopping Mall (Aisles, display racks, kiosks)</option>
+              <option value="procedural">Procedural Labyrinth (Infinite random seed generator)</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="tab-audio" class="tab-content" style="display: none;">
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label class="form-label">Master Synthesizer Volume</label>
+            <div class="slider-container">
+              <input type="range" id="setting-volume" class="slider-input" min="0" max="100" value="80">
+              <span id="val-volume" class="slider-val">80%</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Raycasting Shadow Resolution</label>
+            <select id="setting-raycast-quality" class="form-select">
+              <option value="high" selected>Ultra 360 Rays (Smooth dynamic shadows)</option>
+              <option value="medium">Performance 180 Rays</option>
+              <option value="low">Low Spec 90 Rays</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" data-close="modal-settings">Close</button>
+        <button id="btn-save-settings" class="btn-primary">Apply Config</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Level Editor Modal -->
+  <div id="modal-editor" class="modal-backdrop">
+    <div class="modal-window" style="max-width: 960px;">
+      <div class="modal-header">
+        <div class="modal-title">✏️ Blueprint Level Editor</div>
+        <button class="modal-close" data-close="modal-editor">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="editor-toolbar">
+          <button class="tool-btn active" data-tool="wall">🧱 Place Wall</button>
+          <button class="tool-btn" data-tool="cover">🌿 Place Bush/Cover</button>
+          <button class="tool-btn" data-tool="prop_crate">📦 Place Crate Prop</button>
+          <button class="tool-btn" data-tool="prop_barrel">🛢️ Place Barrel</button>
+          <button class="tool-btn" data-tool="spawner_hider">🕵️ Hider Spawn</button>
+          <button class="tool-btn" data-tool="spawner_seeker">🔦 Seeker Spawn</button>
+          <button class="tool-btn" data-tool="erase">🧹 Erase</button>
+          <button class="tool-btn" id="btn-editor-clear">🗑️ Clear Grid</button>
+          <button class="tool-btn" id="btn-editor-export">💾 Export Blueprint JSON</button>
+          <button class="tool-btn" id="btn-editor-import">📂 Import JSON</button>
+        </div>
+        <div style="display: flex; justify-content: center; background: #030712; padding: 12px; border-radius: 12px;">
+          <canvas id="editorCanvas" width="640" height="480" style="border: 1px solid var(--border-color); cursor: crosshair;"></canvas>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" data-close="modal-editor">Cancel</button>
+        <button id="btn-editor-play" class="btn-primary">Play Custom Map</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lore & Tactics Database Modal -->
+  <div id="modal-lore" class="modal-backdrop">
+    <div class="modal-window" style="max-width: 900px;">
+      <div class="modal-header">
+        <div class="modal-title">📖 Operative Dossiers & Lore Archives</div>
+        <button class="modal-close" data-close="modal-lore">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+          <input type="text" id="lore-search-input" class="form-input" style="flex: 1;" placeholder="Search dossiers, maps, tactics...">
+          <select id="lore-category-filter" class="form-select">
+            <option value="all">All Intelligence</option>
+            <option value="operatives">Operatives Roster</option>
+            <option value="tactics">Tactical Field Manual</option>
+            <option value="maps">Sectors & Blueprints</option>
+            <option value="props">Prop Catalog</option>
+          </select>
+        </div>
+        <div id="lore-content-container" style="max-height: 440px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px;">
+          <!-- Populated dynamically via JS -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" data-close="modal-lore">Close Dossier</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Achievements Modal -->
+  <div id="modal-achievements" class="modal-backdrop">
+    <div class="modal-window">
+      <div class="modal-header">
+        <div class="modal-title">🏆 Tactical Accolades & Records</div>
+        <button class="modal-close" data-close="modal-achievements">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="achievements-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" data-close="modal-achievements">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Match Replay & Telemetry Modal -->
+  <div id="modal-replay" class="modal-backdrop">
+    <div class="modal-window" style="max-width: 920px;">
+      <div class="modal-header">
+        <div class="modal-title">📹 Tactical Telemetry & Replay Analysis</div>
+        <button class="modal-close" data-close="modal-replay">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="display: flex; gap: 16px; align-items: center; justify-content: center; background: #030712; padding: 12px; border-radius: 12px;">
+          <canvas id="replayCanvas" width="600" height="400" style="border: 1px solid var(--border-color);"></canvas>
+        </div>
+        <div style="display: flex; align-items: center; gap: 14px;">
+          <button id="btn-replay-play" class="btn-secondary">▶️ Play</button>
+          <input type="range" id="replay-timeline-slider" class="slider-input" min="0" max="100" value="0">
+          <span id="replay-time-display" class="hud-value" style="font-size: 14px;">00:00 / 00:00</span>
+          <button id="btn-replay-speed" class="btn-secondary">1x Speed</button>
+          <button id="btn-replay-heatmap" class="btn-secondary">Heatmap: OFF</button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" data-close="modal-replay">Close Replay</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Core JavaScript Architecture -->
+  <script src="js/audio.js"></script>
+  <script src="js/input.js"></script>
+  <script src="js/raycast.js"></script>
+  <script src="js/pathfinding.js"></script>
+  <script src="js/entities.js"></script>
+  <script src="js/ai.js"></script>
+  <script src="js/maps.js"></script>
+  <script src="js/items.js"></script>
+  <script src="js/editor.js"></script>
+  <script src="js/replay.js"></script>
+  <script src="js/telemetry.js"></script>
+  
+  <!-- 55,000+ Modular Datasets & Intelligence Archives -->
+  <script src="js/data/hide_and_seek_lore_db.js"></script>
+  <script src="js/data/hide_and_seek_map_catalog.js"></script>
+  <script src="js/data/hide_and_seek_tactics_handbook.js"></script>
+  <script src="js/data/hide_and_seek_prop_compendium.js"></script>
+  <script src="js/data/hide_and_seek_soundtrack_data.js"></script>
+  <script src="js/data/hide_and_seek_dialogue_db.js"></script>
+  <script src="js/data/hide_and_seek_bot_roster.js"></script>
+  <script src="js/data/hide_and_seek_achievements_db.js"></script>
+  <script src="js/data/hide_and_seek_telemetry_archives.js"></script>
+  
+  <!-- Master Game Controller -->
+  <script src="js/game.js"></script>
+</body>
+</html>
